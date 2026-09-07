@@ -12,18 +12,22 @@ CI/Docker image publish can be green while **Railway production deploy** still f
 
 ## Fix in repo (current)
 
-1. `railway.json` → **force `DOCKERFILE` builder** using `docker/Dockerfile.api`  
-   (same path that already builds successfully in GitHub Actions)
-2. `railpack.json` → hard pnpm install if anyone switches builder back to Railpack
-3. `mise.toml` + `packageManager` → pnpm@10.33.2
+1. **Root `Dockerfile`** — Railway build context must include `apps/` + `packages/`
+2. `railway.json` → `dockerfilePath: "Dockerfile"` (repo root, not `docker/…`)
+3. `docker/Dockerfile.api` kept for GHCR publish matrix
+4. Railpack/pnpm pins remain as fallback
 
-## Railway dashboard checklist
+### Important Railway dashboard settings
 
-1. Service Root Directory = **empty** (repo root) — not `apps/api`
-2. Builder = **Dockerfile** (or leave to `railway.json`)
-3. Dockerfile path = `docker/Dockerfile.api` (or env `RAILWAY_DOCKERFILE_PATH=docker/Dockerfile.api`)
-4. Start command = `node apps/api/dist/index.js` (Dockerfile CMD is fine)
-5. Redeploy latest `main`
+| Setting | Must be |
+|---------|---------|
+| **Root Directory** | **Empty** (repo root) |
+| Builder | Dockerfile |
+| Dockerfile path | `Dockerfile` |
+| Env `RAILWAY_DOCKERFILE_PATH` | delete it, or set to `Dockerfile` |
+
+If Root Directory is `docker` or `apps/api`, you get:
+`"/apps": not found` — because those folders are not inside that context.
 
 ## Env (API)
 

@@ -2,7 +2,16 @@
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
     "builder": "DOCKERFILE",
-    "dockerfilePath": "docker/Dockerfile.api"
+    "dockerfilePath": "Dockerfile",
+    "watchPatterns": [
+      "apps/**",
+      "packages/**",
+      "package.json",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
+      "Dockerfile",
+      "docker/**"
+    ]
   },
   "deploy": {
     "startCommand": "node apps/api/dist/index.js",

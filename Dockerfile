@@ -1,5 +1,4 @@
-# Railway API service — same image as root Dockerfile (kept for GHCR matrix path).
-# Prefer root /Dockerfile for Railway so build context is always the repo root.
+# ThinkAIQ CRM — API production image (repo-root Dockerfile for Railway build context)
 FROM node:20-bookworm-slim
 RUN corepack enable && corepack prepare pnpm@10.33.2 --activate
 WORKDIR /app
