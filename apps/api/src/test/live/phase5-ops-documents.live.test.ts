@@ -42,7 +42,8 @@ describe('live phase5-ops-documents-isolation', () => {
     const render = await authedPost(app, '/api/documents/render', {
       token,
       host: fx.tenantA.host,
-      body: { source_type: 'invoice', source_id: invoiceId },
+      // Async enqueue only — tenant isolation does not need sync Playwright PDF
+      body: { source_type: 'invoice', source_id: invoiceId, sync: false },
     });
     expect([200, 201, 202]).toContain(render.status);
     const artifactId = render.body.data.artifactId as string;

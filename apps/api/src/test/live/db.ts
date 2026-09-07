@@ -34,7 +34,8 @@ export async function openLiveTestDb(databaseUrl: string): Promise<Kysely<Databa
 
 /** Wipe tenant-owned / fixture tables for deterministic reseed. */
 export async function resetLiveFixtureTables(db: Kysely<Database>): Promise<void> {
-  await sql`
+  const run = () =>
+    sql`
     TRUNCATE TABLE
       outbox_events,
       security_audit_events,
@@ -99,4 +100,19 @@ export async function resetLiveFixtureTables(db: Kysely<Database>): Promise<void
       workspaces
     RESTART IDENTITY CASCADE
   `.execute(db);
+
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      await run();
+      return;
+    } catch (err) {
+      lastErr = err;
+      const code = (err as { code?: string })?.code;
+      // 40P01 = deadlock — retry briefly under CI parallelism pressure
+      if (code !== '40P01' || attempt === 4) break;
+      await new Promise((r) => setTimeout(r, 100 * (attempt + 1)));
+    }
+  }
+  throw lastErr;
 }

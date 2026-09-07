@@ -311,6 +311,7 @@ describe('live crm-isolation', () => {
         owner_id: fx.userA.id,
         amount: '100.00',
         currency: 'INR',
+        company_id: fx.companyA.id,
       },
     });
     expect(created.status).toBe(201);
@@ -368,7 +369,7 @@ describe('live crm-isolation', () => {
     expect(contactParty.party_type).toBe('contact');
     expect(contactParty.party_id).toBe(fx.contactA.id);
 
-    // Neither → null party
+    // Neither → rejected (CustomerParty / company / contact required)
     const bare = await authedPost(app, '/api/deals', {
       token,
       host: fx.tenantA.host,
@@ -379,8 +380,8 @@ describe('live crm-isolation', () => {
         owner_id: fx.userA.id,
       },
     });
-    expect(bare.status).toBe(201);
-    expect(bare.body.data.customer_party_id).toBeNull();
+    expect(bare.status).toBe(400);
+    expect(bare.body.error?.code).toBe('CUSTOMER_REQUIRED');
 
     // Ensure/reuse — second deal same company reuses party
     const first = await authedPost(app, '/api/deals', {

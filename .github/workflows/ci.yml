@@ -91,6 +91,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       # Build api + workspace deps in correct order (db needs types/modules first)
       - run: pnpm --filter "@vencore/api..." build
+      - name: Install Playwright Chromium (real PDF live tests)
+        run: pnpm --filter "@vencore/api" exec playwright install --with-deps chromium
       - run: pnpm --filter "@vencore/api" test:live-isolation
         env:
           NODE_ENV: test
@@ -143,10 +145,14 @@ jobs:
           cd packages/db && DATABASE_URL="postgresql://vencore:vencore@localhost:5432/vencore_queue_test" pnpm exec tsx src/migrate.ts
       - name: Job-runtime unit + contract
         run: pnpm --filter "@vencore/job-runtime" test
-      - name: Outbox + webhook + BullMQ live
-        run: |
-          pnpm --filter "@vencore/events" test:integration
-          pnpm --filter "@vencore/job-runtime" test:integration
+      - name: Outbox atomicity (memory queue — no BullMQ publisher)
+        run: pnpm --filter "@vencore/events" test:integration
+        env:
+          NODE_ENV: test
+          ALLOW_LIVE_QUEUE_TESTS: '1'
+          DATABASE_URL_TEST: postgresql://vencore:vencore@localhost:5432/vencore_queue_test
+      - name: BullMQ + job-runtime live
+        run: pnpm --filter "@vencore/job-runtime" test:integration
         env:
           NODE_ENV: test
           ALLOW_LIVE_QUEUE_TESTS: '1'

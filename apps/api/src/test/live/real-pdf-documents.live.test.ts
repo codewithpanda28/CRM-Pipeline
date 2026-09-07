@@ -1,7 +1,7 @@
 /**
  * Live — real Playwright PDF render + secure download isolation for all doc types.
  */
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { getLiveCtx } from './setup';
 import { authedGet, authedPost, expectDenied, signTenantToken } from './http';
 import { renderArtifactNow, downloadArtifact, enqueueRender } from '../../lib/documents';
@@ -17,11 +17,16 @@ function assertRealPdfBytes(buf: Buffer) {
 
 describe('live real-pdf-documents', () => {
   beforeAll(async () => {
+    process.env['DOCUMENT_PDF_REQUIRE_PLAYWRIGHT'] = '1';
     const { chromium } = await import('playwright');
     const browser = await chromium.launch({ headless: true });
     await browser.close();
     await getLiveCtx();
   }, 120_000);
+
+  afterAll(() => {
+    delete process.env['DOCUMENT_PDF_REQUIRE_PLAYWRIGHT'];
+  });
 
   it('renders real Invoice/Quote/CN/DN PDFs; download + cross-tenant deny; regen idempotent', async () => {
     const { app, fx, db } = await getLiveCtx();
