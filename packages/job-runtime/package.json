@@ -1,0 +1,25 @@
+{
+  "name": "@vencore/job-runtime",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "lint": "tsc --noEmit -p tsconfig.json",
+    "type-check": "tsc --noEmit -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
+  },
+  "dependencies": {
+    "@vencore/tenancy": "workspace:*",
+    "bullmq": "^5.58.5",
+    "ioredis": "^5.10.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "redis-memory-server": "^0.17.1",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}

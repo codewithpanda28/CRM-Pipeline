@@ -1,0 +1,29 @@
+{
+  "name": "ThinkAIQ CRM",
+  "short_name": "ThinkAIQ CRM",
+  "description": "Business CRM & Management Platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B1F3A",
+  "theme_color": "#0B1F3A",
+  "icons": [
+    {
+      "src": "/platform/branding/app-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/platform/branding/favicon.png",
+      "sizes": "32x32",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/platform/branding/favicon.ico",
+      "sizes": "16x16 32x32 48x48",
+      "type": "image/x-icon",
+      "purpose": "any"
+    }
+  ]
+}

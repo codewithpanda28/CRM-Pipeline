@@ -1,0 +1,176 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, development]
+  push:
+    branches: [main, development]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+
+  type-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm type-check
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: vencore
+          POSTGRES_PASSWORD: vencore
+          POSTGRES_DB: vencore_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vencore"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter "@vencore/api..." build
+      - run: pnpm --filter "@vencore/api" test
+        env:
+          DATABASE_URL: postgresql://vencore:vencore@localhost:5432/vencore_test
+          JWT_SECRET: test-jwt-secret
+          CRON_SECRET: test-cron-secret
+          NODE_ENV: test
+
+  # Live isolation suite — required gate for tenant-sensitive changes
+  live-isolation:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: vencore
+          POSTGRES_PASSWORD: vencore
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vencore"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter "@vencore/db" build
+      - run: pnpm --filter "@vencore/tenancy" build
+      - run: pnpm --filter "@vencore/modules" build
+      - run: pnpm --filter "@vencore/api" test:live-isolation
+        env:
+          NODE_ENV: test
+          ALLOW_LIVE_DB_TESTS: '1'
+          DATABASE_URL_TEST: postgresql://vencore:vencore@localhost:5432/vencore_isolation_test
+          TRUST_PROXY: 'true'
+          JWT_SECRET: live-isolation-ci-secret
+
+  # Async foundation — outbox + BullMQ (dedicated Redis DB; not developer laptop Redis)
+  live-async:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: vencore
+          POSTGRES_PASSWORD: vencore
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vencore"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter "@vencore/db" build
+      - run: pnpm --filter "@vencore/tenancy" build
+      - run: pnpm --filter "@vencore/job-runtime" build
+      - run: pnpm --filter "@vencore/events" build
+      - name: Create + migrate queue test database
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+          PGPASSWORD=vencore psql -h localhost -U vencore -d postgres -c "CREATE DATABASE vencore_queue_test;" || true
+          cd packages/db && DATABASE_URL="postgresql://vencore:vencore@localhost:5432/vencore_queue_test" pnpm exec tsx src/migrate.ts
+      - name: Job-runtime unit + contract
+        run: pnpm --filter "@vencore/job-runtime" test
+      - name: Outbox + webhook + BullMQ live
+        run: |
+          pnpm --filter "@vencore/events" test:integration
+          pnpm --filter "@vencore/job-runtime" test:integration
+        env:
+          NODE_ENV: test
+          ALLOW_LIVE_QUEUE_TESTS: '1'
+          DATABASE_URL_TEST: postgresql://vencore:vencore@localhost:5432/vencore_queue_test
+          REDIS_URL_TEST: redis://127.0.0.1:6379/15
+          JOBS_RUNTIME: bullmq
+      - name: Worker catalog unit
+        run: pnpm --filter "@vencore/worker" test
+        env:
+          NODE_ENV: test

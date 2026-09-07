@@ -1,0 +1,193 @@
+import { describe, it, expect } from 'vitest';
+import {
+  getDefaultPermissionsForRole,
+  getModuleForPermission,
+  getAllPermissions,
+  MODULE_REGISTRY,
+  INFRA_SUBMODULE_IDS,
+  expandLegacyPermission,
+} from './index';
+
+describe('getDefaultPermissionsForRole', () => {
+  it('admin gets all permissions', () => {
+    const all = getAllPermissions().map(p => p.key);
+    const adminPerms = getDefaultPermissionsForRole('admin');
+    expect(adminPerms).toEqual(expect.arrayContaining(all));
+    expect(adminPerms.length).toBe(all.length);
+  });
+
+  it('member does not get delete permissions', () => {
+    const memberPerms = getDefaultPermissionsForRole('member');
+    const deletePerms = memberPerms.filter(p => p.endsWith(':delete'));
+    expect(deletePerms).toHaveLength(0);
+  });
+
+  it('includes automation permissions for member viewers', () => {
+    const memberPerms = getDefaultPermissionsForRole('member');
+    expect(memberPerms).toContain('automation:workflows:view');
+    expect(memberPerms).toContain('automation:runs:view');
+    expect(memberPerms).toContain('automation:approvals:view');
+    expect(memberPerms).not.toContain('automation:admin');
+  });
+
+  it('includes ops member defaults and excludes admin-only target manage', () => {
+    const memberPerms = getDefaultPermissionsForRole('member');
+    expect(memberPerms).toContain('ops.tasks.view');
+    expect(memberPerms).toContain('ops.targets.view_own');
+    expect(memberPerms).toContain('ops.dpr.view_own');
+    expect(memberPerms).toContain('ops.dpr.create');
+    expect(memberPerms).toContain('ops.performance.view_own');
+    expect(memberPerms).not.toContain('ops.targets.manage');
+    expect(memberPerms).not.toContain('ops.dpr.review');
+    expect(memberPerms).not.toContain('ops.commission_hooks.view');
+  });
+});
+
+describe('getModuleForPermission', () => {
+  it('returns correct moduleId for known permission', () => {
+    expect(getModuleForPermission('contacts:create')).toBe('crm');
+    expect(getModuleForPermission('pipelines:stage.edit')).toBe('crm');
+    expect(getModuleForPermission('tasks:delete')).toBe('crm');
+    expect(getModuleForPermission('servers:delete')).toBe('infra');
+    expect(getModuleForPermission('websites:view')).toBe('infra');
+    expect(getModuleForPermission('alerts:configure')).toBe('infra');
+    expect(getModuleForPermission('analytics:view')).toBe('analytics');
+    expect(getModuleForPermission('automation:workflows:view')).toBe('automation');
+  });
+
+  it('returns null for unknown permission', () => {
+    expect(getModuleForPermission('unknown:action')).toBeNull();
+  });
+});
+
+describe('MODULE_REGISTRY', () => {
+  it('contains crm and not the merged module ids', () => {
+    const ids = MODULE_REGISTRY.map(m => m.id);
+    expect(ids).toContain('crm');
+    for (const old of ['contacts', 'companies', 'pipelines', 'tasks']) {
+      expect(ids).not.toContain(old);
+    }
+  });
+
+  it('crm module carries all merged permission keys', () => {
+    const crm = MODULE_REGISTRY.find(m => m.id === 'crm');
+    const keys = crm!.permissions.map(p => p.key);
+    expect(keys).toEqual(expect.arrayContaining([
+      'contacts:view', 'contacts:delete',
+      'companies:view', 'companies:delete',
+      'pipelines:view', 'pipelines:config', 'pipelines:field.delete',
+      'deals:view', 'deals:create', 'deals:move_stage', 'deals:win_lose',
+      'leads:view', 'leads:create', 'leads:convert',
+      'customers:view', 'customers:create', 'customers:edit', 'customers:delete', 'customers:merge',
+      'products:view', 'products:create', 'products:edit', 'products:delete',
+      'quotes:view', 'quotes:create', 'quotes:edit', 'quotes:delete',
+      'quotes:send', 'quotes:accept', 'quotes:reject', 'quotes:cancel',
+      'tasks:view', 'tasks:delete',
+    ]));
+    expect(keys).toHaveLength(49);
+  });
+
+  it('finance module carries commercial permission keys', () => {
+    const finance = MODULE_REGISTRY.find(m => m.id === 'finance');
+    const keys = finance!.permissions.map(p => p.key);
+    expect(keys).toEqual(expect.arrayContaining([
+      'invoices:view', 'invoices:create', 'invoices:issue', 'invoices:void', 'invoices:cancel',
+      'payments:view', 'payments:create', 'payments:refund',
+      'expenses:view', 'expenses:create',
+      'vendors:view', 'vendors:create',
+      'credit_notes:view', 'credit_notes:create',
+      'debit_notes:view', 'debit_notes:create',
+      'reports:view', 'finance:settings',
+    ]));
+    expect(keys).toHaveLength(30);
+    expect(getModuleForPermission('invoices:view')).toBe('finance');
+    expect(getModuleForPermission('payments:refund')).toBe('finance');
+  });
+
+  it('customers:merge is admin-only; members get view/create/edit', () => {
+    const memberPerms = getDefaultPermissionsForRole('member');
+    expect(memberPerms).toContain('customers:view');
+    expect(memberPerms).toContain('customers:create');
+    expect(memberPerms).toContain('customers:edit');
+    expect(memberPerms).not.toContain('customers:delete');
+    expect(memberPerms).not.toContain('customers:merge');
+    expect(getModuleForPermission('customers:merge')).toBe('crm');
+  });
+
+  it('contains infra and not the merged infra module ids', () => {
+    const ids = MODULE_REGISTRY.map(m => m.id);
+    expect(ids).toContain('infra');
+    for (const old of ['servers', 'databases', 'websites', 'alerts']) {
+      expect(ids).not.toContain(old);
+    }
+  });
+
+  it('infra module carries all merged permission keys', () => {
+    const infra = MODULE_REGISTRY.find(m => m.id === 'infra');
+    const keys = infra!.permissions.map(p => p.key);
+    expect(keys).toEqual(expect.arrayContaining([
+      'servers:view', 'servers:ssh', 'servers:delete',
+      'databases:view', 'databases:delete',
+      'websites:view', 'websites:delete',
+      'alerts:view', 'alerts:acknowledge', 'alerts:resolve', 'alerts:configure',
+    ]));
+    expect(keys).toHaveLength(17);
+  });
+
+  it('every module has at least one permission', () => {
+    for (const mod of MODULE_REGISTRY) {
+      expect(mod.permissions.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('projects module emits both activity and alerts', () => {
+    const projects = MODULE_REGISTRY.find(m => m.id === 'projects');
+    expect(projects?.emitsActivity).toBe(true);
+    expect(projects?.emitsAlerts).toBe(true);
+  });
+
+  it('contains ops module defaultEnabled with member task/target scopes', () => {
+    const ids = MODULE_REGISTRY.map(m => m.id);
+    expect(ids).toContain('ops');
+    const ops = MODULE_REGISTRY.find(m => m.id === 'ops');
+    expect(ops?.defaultEnabled).toBe(true);
+    expect(getModuleForPermission('ops.tasks.view')).toBe('ops');
+    expect(getModuleForPermission('ops.targets.manage')).toBe('ops');
+  });
+});
+
+describe('INFRA_SUBMODULES', () => {
+  it('exposes the four child module ids', () => {
+    expect(INFRA_SUBMODULE_IDS).toEqual([
+      'infra:servers', 'infra:databases', 'infra:websites', 'infra:alerts',
+    ]);
+  });
+});
+
+describe('admin namespace', () => {
+  it('registers roles:manage under the admin module', () => {
+    expect(getModuleForPermission('roles:manage')).toBe('admin');
+    expect(getModuleForPermission('users:manage')).toBe('admin');
+  });
+  it('admin module is in the registry', () => {
+    expect(MODULE_REGISTRY.some(m => m.id === 'admin')).toBe(true);
+  });
+});
+
+describe('PM fine-graining', () => {
+  it('maps legacy projects:manage to granular write keys', () => {
+    const out = expandLegacyPermission('projects:manage');
+    expect(out).toContain('projects:create');
+    expect(out).toContain('pm.sprints:manage');
+    expect(out).toContain('projects:delete'); // broad admin write retains delete
+    expect(out).not.toContain('projects:view'); // view is separate
+  });
+  it('passes through non-legacy keys unchanged', () => {
+    expect(expandLegacyPermission('projects:view')).toEqual(['projects:view']);
+    expect(expandLegacyPermission('contacts:delete')).toEqual(['contacts:delete']);
+  });
+  it('registers new granular PM keys under projects', () => {
+    expect(getModuleForPermission('pm.sprints:manage')).toBe('projects');
+    expect(getModuleForPermission('pm.time:log')).toBe('projects');
+  });
+});

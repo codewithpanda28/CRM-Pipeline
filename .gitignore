@@ -1,0 +1,28 @@
+# Dependencies & build
+node_modules/
+dist/
+.next/
+coverage/
+*.tsbuildinfo
+.env
+.env.local
+.tools/
+tmp/
+
+# Vencore clone used for read-only audits
+_audit/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.cursor/
+
+# Local runtime junk
+dump.rdb
+*.rdb
+
+# Local document/object storage
+apps/api/storage/
+

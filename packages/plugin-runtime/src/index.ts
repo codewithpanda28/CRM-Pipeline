@@ -1,0 +1,29 @@
+export { checkPermission, pluginPermissionKey, isPluginPermissionKey, parsePluginPermissionKey, PLUGIN_PERMISSION_PREFIX } from './permissions';
+export { dispatchBridgeCall } from './bridge-router';
+export type { BridgeContext } from './bridge-router';
+export { bridgeRegistry } from './bridge-registry';
+export type { BridgeHandlerDef, BridgeHandlerFn } from './bridge-registry';
+export { pluginEventBus, PluginEventBus } from './bus';
+export { slugify, physicalTableName, dispatchTableCall } from './table-client';
+export { runMigrations, dropPluginTables, ensureMigrationLog } from './migration-runner';
+export {
+  getContract, isKnownContract, listContracts, validateRecords,
+  CONTRACT_ID_RE, crmContactV1, crmCompanyV1, crmDealV1, crmActivityV1,
+  CONTRACT_GROUPS, getContractGroup, groupForContract, groupsServedBy, validateGroupCoverage,
+} from './contracts';
+export type { ContractDef, ContractViolation, ContractGroupDef } from './contracts';
+export {
+  registerHubBridgeMethods, removeProviderHubData, softDeleteProviderHubData,
+  restoreProviderHubData, purgeExpiredHubRecords, hasHubPermission, HUB_LIMITS,
+} from './hub';
+export {
+  getActiveProvider, getActiveProviderForContract, setActiveProvider,
+  detectProviderConflicts, deactivateProvider, getPendingSelections,
+  resolveProviderName,
+} from './provider-selection';
+export type { ActiveProvider } from './provider-selection';
+export { queryBuiltinCrm, countBuiltinCrm, builtinAdapterSupports, BUILTIN_CRM_PROVIDER_ID } from './builtin-crm-adapter';
+export {
+  emitContractEvent, expandListenTopics, CONTRACT_EVENT_ALIASES,
+} from './contract-events';
+export type { ContractAction } from './contract-events';

@@ -1,0 +1,35 @@
+{
+  "name": "vencore",
+  "version": "0.2.0",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "type-check": "turbo type-check",
+    "db:migrate": "turbo db:migrate",
+    "test:live-isolation": "pnpm --filter @vencore/api test:live-isolation"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@10.33.2",
+  "pnpm": {
+    "overrides": {
+      "react": "19.1.0",
+      "react-dom": "19.1.0"
+    },
+    "onlyBuiltDependencies": [
+      "@clerk/shared",
+      "bcrypt",
+      "esbuild",
+      "sharp",
+      "unrs-resolver"
+    ]
+  }
+}

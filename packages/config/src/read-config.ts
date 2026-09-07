@@ -1,0 +1,61 @@
+// packages/config/src/read-config.ts
+import * as fs from 'fs';
+import * as path from 'path';
+import { configSchema, type VantageConfig } from './config-schema';
+import { PLATFORM_IDENTITY } from './platform-identity';
+
+let cached: VantageConfig | null = null;
+
+const SAFE_DEFAULTS: VantageConfig = {
+  app: {
+    name: PLATFORM_IDENTITY.productName,
+    logoUrl: PLATFORM_IDENTITY.assets.logoMark,
+    domain: undefined,
+    faviconUrl: PLATFORM_IDENTITY.assets.favicon,
+    tagline: PLATFORM_IDENTITY.productCategory,
+    appearance: {
+      accentColor: '#0b1330',
+      preset: 'default',
+      radius: 'rounded',
+      density: 'comfortable',
+      sidebarStyle: 'light',
+      login: { background: null, backgroundImage: null },
+    },
+  },
+  features: { crm: true, infra: true, alerts: true, analytics: false, files: false },
+  smtp: null,
+  databases: [],
+};
+
+export function readConfig(): VantageConfig {
+  if (cached) return cached;
+
+  const configPath =
+    process.env['CONFIG_PATH'] ??
+    path.resolve(process.cwd(), 'vencore.config.json');
+
+  let raw: unknown;
+  try {
+    raw = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+  } catch (err: unknown) {
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
+    console.warn(
+      `[ThinkAIQ] Config file not found at ${configPath}. Using ThinkAIQ CRM defaults. Run setup wizard or set CONFIG_PATH.`
+    );
+    cached = SAFE_DEFAULTS;
+    return cached;
+  }
+
+  const result = configSchema.safeParse(raw);
+  if (!result.success) {
+    throw new Error(`[ThinkAIQ] Invalid config file: ${result.error.message}`);
+  }
+
+  cached = result.data;
+  return cached;
+}
+
+/** Reset singleton — for tests only */
+export function _resetConfig(): void {
+  cached = null;
+}

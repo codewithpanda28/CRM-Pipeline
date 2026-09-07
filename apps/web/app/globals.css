@@ -1,0 +1,277 @@
+@import "tailwindcss";
+
+:root {
+  /* Surfaces */
+  --bg:        #f7f6f2;
+  --surface:   #ffffff;
+  --surface2:  #f0ede6;
+  --border:    #e4e0d8;
+  --border2:   #d4cfc5;
+
+  /* Text — cool ink-blue ladder */
+  --text:      #0b1330;
+  --text2:     #4a5677;
+  --text3:     #8e96ac;
+
+  /* Semantic colors */
+  --green:        #2d6a4f;
+  --green-bg:     #d8f3dc;
+  --amber:        #92400e;
+  --amber-bg:     #fef3c7;
+  --red:          #991b1b;
+  --red-bg:       #fee2e2;
+  --blue:         #1e3a8a;
+  --blue-bg:      #dbeafe;
+  --purple:       #4c1d95;
+  --purple-bg:    #ede9fe;
+
+  /* Brand accent (overridden by SSR <style id="brand-theme">) */
+  --accent:        #0b1330;
+  --accent-hover:  #4a5677;
+  --accent-active: #0b1330;
+  --accent-weak:   #dbeafe;
+  --accent-fg:     #ffffff;
+
+  /* Navigation chrome */
+  --nav-bg:        var(--surface);
+  --nav-fg:        var(--text);
+  --nav-fg-muted:  var(--text2);
+  --nav-active:    var(--accent);
+  --nav-border:    var(--border);
+
+  /* Layout */
+  --sidebar-w:   220px;
+  --header-h:    56px;
+
+  /* Type families */
+  --font-sans:    'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --font-serif:   var(--font-display);
+  --font-mono:    'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Radii */
+  --radius-sm:   6px;
+  --radius:      10px;
+  --radius-md:   12px;
+  --radius-lg:   16px;
+  --radius-xl:   20px;
+  --radius-pill: 999px;
+
+  /* Shadows */
+  --shadow-hover: 0 2px 8px rgba(0,0,0,0.08);
+  --shadow-modal: 0 8px 32px rgba(0,0,0,0.12);
+
+  /* Motion */
+  --motion-fast: .15s;
+  --motion-ease: ease;
+  --transition:  all var(--motion-fast) var(--motion-ease);
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+[data-theme="dark"] {
+  --bg:        #0f1117;
+  --surface:   #171a23;
+  --surface2:  #1f232e;
+  --border:    #2a2f3b;
+  --border2:   #383f4e;
+
+  --text:      #e8eaf0;
+  --text2:     #aab0c0;
+  --text3:     #6b7280;
+
+  --green:        #4ade80;
+  --green-bg:     #163a2c;
+  --amber:        #fbbf24;
+  --amber-bg:     #3a2a0f;
+  --red:          #f87171;
+  --red-bg:       #3a1717;
+  --blue:         #60a5fa;
+  --blue-bg:      #16233a;
+  --purple:       #c4b5fd;
+  --purple-bg:    #2a1f3a;
+
+  --accent:        #60a5fa;
+  --accent-hover:  #93c5fd;
+  --accent-active: #3b82f6;
+  --accent-weak:   #16233a;
+  --accent-fg:     #0f1117;
+
+  --shadow-hover: 0 2px 8px rgba(0,0,0,0.4);
+  --shadow-modal: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+[data-nav="dark"] {
+  --nav-bg:       #171a23;
+  --nav-fg:       #e8eaf0;
+  --nav-fg-muted: #aab0c0;
+  --nav-border:   #2a2f3b;
+  --nav-active:   #e8eaf0;
+}
+
+[data-nav="brand"] {
+  --nav-bg:       var(--accent);
+  --nav-fg:       var(--accent-fg);
+  --nav-fg-muted: color-mix(in srgb, var(--accent-fg) 72%, transparent);
+  --nav-border:   var(--accent-active);
+  --nav-active:   var(--accent-fg);
+}
+
+[data-radius="sharp"] { --radius-sm:2px; --radius:3px; --radius-md:4px; --radius-lg:6px; --radius-xl:8px; }
+[data-radius="pill"]  { --radius-sm:10px; --radius:14px; --radius-md:16px; --radius-lg:22px; --radius-xl:28px; }
+[data-density="compact"] { --header-h:48px; }
+[data-density="compact"] body { font-size: 13px; }
+
+@keyframes shimmer {
+  0%   { background-position: -200px 0; }
+  100% { background-position: 200px 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--surface2) 25%, var(--border) 37%, var(--surface2) 63%);
+  background-size: 400px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: var(--radius);
+}
+
+.fade-in {
+  animation: slideDown var(--motion-fast) var(--motion-ease) both;
+}
+
+@keyframes widgetIn {
+  from { opacity: 0; transform: scale(.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.widget-card-enter {
+  animation: widgetIn .2s ease both;
+}
+
+.widget-card-enter:hover .widget-gear {
+  opacity: 1 !important;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: .3; transform: scale(.85); }
+  50%      { opacity: 1;  transform: scale(1); }
+}
+
+@keyframes progressFill {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+.settings-shell {
+  display: flex;
+  gap: 32px;
+}
+
+.settings-subnav {
+  width: 200px;
+  flex-shrink: 0;
+}
+
+.settings-subnav-group {
+  margin-bottom: 20px;
+}
+
+.settings-content {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .settings-shell {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .settings-subnav {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 4px;
+  }
+  .settings-subnav-group {
+    display: contents;
+  }
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border2);
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text3);
+}
+
+.db-table-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: calc(100vh - var(--header-h) - 130px);
+}
+
+.db-sidebar-scroll {
+  max-height: calc(100vh - var(--header-h) - 160px);
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+@media (max-width: 760px) {
+  .setup-sidebar {
+    display: none !important;
+  }
+  .setup-main-content {
+    padding: 24px 20px !important;
+  }
+  .setup-footer-inner {
+    padding: 12px 20px !important;
+  }
+  .setup-branding-cols {
+    flex-direction: column !important;
+  }
+  .setup-branding-preview {
+    flex: 1 1 auto !important;
+    max-width: none !important;
+  }
+}

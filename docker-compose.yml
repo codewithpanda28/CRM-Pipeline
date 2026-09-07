@@ -1,0 +1,95 @@
+# Unified compose file for all environments.
+#
+# Dev (infra only):  docker compose up db redis
+# Dev (full stack):  docker compose up --build
+# Demo/Prod:         docker compose up -d
+#
+# Image selection via .env:
+#   Dev:  WEB_IMAGE=vencore-web:local (default, builds from docker/)
+#   Demo: WEB_IMAGE=ghcr.io/vencorehq/vencore-web:demo
+#   Prod: WEB_IMAGE=ghcr.io/vencorehq/vencore-web:latest
+
+services:
+  db:
+    image: ${DB_IMAGE:-timescale/timescaledb:latest-pg15}
+    ports:
+      - "127.0.0.1:5432:5432"
+    environment:
+      POSTGRES_USER: ${DB_USER:-vencore}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-vencore}
+      POSTGRES_DB: ${DB_NAME:-vencore}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-vencore}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  web:
+    image: ${WEB_IMAGE:-ghcr.io/vencorehq/vencore-web:latest}
+    ports:
+      - "80:3000"
+    env_file: .env
+    environment:
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      API_URL: http://api:3001
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  api:
+    image: ${API_IMAGE:-ghcr.io/vencorehq/vencore-api:latest}
+    # Published so a locally-run `pnpm dev` web server can reach the API through
+    # the Next.js rewrite (and so WS upgrades can bypass Next entirely).
+    ports:
+      - "127.0.0.1:3001:3001"
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-vencore}:${DB_PASSWORD:-vencore}@db:5432/${DB_NAME:-vencore}
+      REDIS_URL: redis://redis:6379
+      CONFIG_PATH: vencore.config.json
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3001/api/setup/status').then(r=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))\""]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  worker:
+    image: ${WORKER_IMAGE:-ghcr.io/vencorehq/vencore-worker:latest}
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-vencore}:${DB_PASSWORD:-vencore}@db:5432/${DB_NAME:-vencore}
+      REDIS_URL: redis://redis:6379
+      CONFIG_PATH: vencore.config.json
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  db_data:
+  redis_data:

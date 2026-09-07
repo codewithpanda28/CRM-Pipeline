@@ -1,0 +1,107 @@
+// apps/api/src/middleware/module.ts
+import type { Request, Response, NextFunction } from 'express';
+import type { Kysely } from 'kysely';
+import type { Database } from '@vencore/db';
+import type { AuthenticatedRequest } from './auth';
+
+import { moduleCacheKey } from '@vencore/tenancy';
+
+// In-memory cache: key = t:{tenantId}:module:{moduleId}
+const moduleCache = new Map<string, { enabled: boolean; expiresAt: number }>();
+const CACHE_TTL_MS = 60_000;
+
+async function isModuleEnabled(
+  db: Kysely<Database>,
+  workspaceId: string,
+  moduleId: string,
+): Promise<boolean> {
+  const cacheKey = moduleCacheKey(workspaceId, moduleId);
+  const cached = moduleCache.get(cacheKey);
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.enabled;
+  }
+
+  const row = await db
+    .selectFrom('workspace_modules')
+    .where('workspace_id', '=', workspaceId)
+    .where('module_id', '=', moduleId)
+    .select('enabled')
+    .executeTakeFirst();
+
+  const enabled = row?.enabled ?? false;
+  moduleCache.set(cacheKey, { enabled, expiresAt: Date.now() + CACHE_TTL_MS });
+  return enabled;
+}
+
+export function invalidateModuleCache(workspaceId: string, moduleId: string): void {
+  moduleCache.delete(moduleCacheKey(workspaceId, moduleId));
+}
+
+/** Test-only. Do not use in production code. */
+export function __clearModuleCacheForTesting(): void {
+  moduleCache.clear();
+}
+
+export function createRequireModule(db: Kysely<Database>) {
+  return function requireModule(moduleId: string) {
+    return async function (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<void> {
+      try {
+        const { workspace } = req as AuthenticatedRequest;
+        const enabled = await isModuleEnabled(db, workspace.id, moduleId);
+        if (!enabled) {
+          res.status(403).json({
+            data: null,
+            error: {
+              code: 'MODULE_DISABLED',
+              message: `${moduleId} module is disabled for this workspace.`,
+            },
+          });
+          return;
+        }
+        next();
+      } catch (err) {
+        next(err);
+      }
+    };
+  };
+}
+
+/**
+ * Gate a parent module's sub-page: the request passes only when BOTH the
+ * parent module (e.g. `crm`, `infra`) and the given child module
+ * (e.g. `crm:contacts`, `infra:servers`) are enabled.
+ */
+export function createRequireModuleFeature(db: Kysely<Database>) {
+  return function requireModuleFeature(parentId: string) {
+    return function (subModuleId: string) {
+      return async function (
+        req: Request,
+        res: Response,
+        next: NextFunction,
+      ): Promise<void> {
+        try {
+          const { workspace } = req as AuthenticatedRequest;
+          const parentEnabled = await isModuleEnabled(db, workspace.id, parentId);
+          const childEnabled = await isModuleEnabled(db, workspace.id, subModuleId);
+          if (!parentEnabled || !childEnabled) {
+            res.status(403).json({
+              data: null,
+              error: {
+                code: 'MODULE_DISABLED',
+                message: `${subModuleId} is disabled for this workspace.`,
+              },
+            });
+            return;
+          }
+          next();
+        } catch (err) {
+          next(err);
+        }
+      };
+    };
+  };
+}
