@@ -1,47 +1,37 @@
-# Railway / Railpack deploy notes (ThinkAIQ CRM monorepo)
+# Railway / Railpack / Docker deploy notes (ThinkAIQ CRM monorepo)
 
-## Why the build failed
+## Why deploy failed
 
 ```
 npm error Unsupported URL Type "workspace:": workspace:*
 ```
 
-This repo is a **pnpm workspace**. Internal packages use `workspace:*`.
-Railpack fell back to **npm**, which cannot resolve that protocol.
+Railpack defaulted to **npm**. This repo is a **pnpm workspace** (`workspace:*`).
 
-## Fix applied in repo
+CI/Docker image publish can be green while **Railway production deploy** still fails — they are different pipelines.
 
-- `packageManager` / `devEngines` → pnpm@10.33.2
-- `mise.toml` → pin Node 20 + pnpm 10.33.2
-- `railpack.json` → force node provider + pnpm package + API start
-- Root scripts: `build:api` / `start:api`
+## Fix in repo (current)
 
-## Railway service settings (required)
+1. `railway.json` → **force `DOCKERFILE` builder** using `docker/Dockerfile.api`  
+   (same path that already builds successfully in GitHub Actions)
+2. `railpack.json` → hard pnpm install if anyone switches builder back to Railpack
+3. `mise.toml` + `packageManager` → pnpm@10.33.2
 
-For **API** service:
+## Railway dashboard checklist
 
-| Setting | Value |
-|---------|--------|
-| Root Directory | *(empty / repo root)* — **not** `apps/api` |
-| Build Command | leave blank (Railpack) **or** `pnpm install --frozen-lockfile && pnpm --filter "@vencore/api..." build` |
-| Start Command | `pnpm --filter "@vencore/api" start` (or blank to use railpack.json) |
-| Node | 20.x via mise / engines |
+1. Service Root Directory = **empty** (repo root) — not `apps/api`
+2. Builder = **Dockerfile** (or leave to `railway.json`)
+3. Dockerfile path = `docker/Dockerfile.api` (or env `RAILWAY_DOCKERFILE_PATH=docker/Dockerfile.api`)
+4. Start command = `node apps/api/dist/index.js` (Dockerfile CMD is fine)
+5. Redeploy latest `main`
 
-For **Web** service (separate):
+## Env (API)
 
-| Setting | Value |
-|---------|--------|
-| Root Directory | repo root |
-| Build Command | `pnpm install --frozen-lockfile && pnpm --filter "@vencore/web..." build` |
-| Start Command | `pnpm --filter "@vencore/web" start` |
+At minimum from `.env.example`:
 
-## Env vars (API)
-
-Copy from `.env.example` — at minimum:
-
-- `DATABASE_URL` (Railway Postgres)
+- `DATABASE_URL` → Railway Postgres (real SoR)
 - `JWT_SECRET`
-- `REDIS_URL` / `JOBS_REDIS_URL` if worker/jobs needed
-- `APP_URL` / public URL as configured
+- `REDIS_URL` if jobs needed
+- public `APP_URL` / CORS origins as configured
 
-Do **not** point app SoR at `DATABASE_URL_TEST`.
+Never use `DATABASE_URL_TEST` for the live app.

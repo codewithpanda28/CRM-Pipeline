@@ -5,8 +5,36 @@
     "node": "20",
     "pnpm": "10.33.2"
   },
+  "steps": {
+    "install": {
+      "commands": [
+        { "src": "package.json", "dest": "package.json" },
+        { "src": "pnpm-lock.yaml", "dest": "pnpm-lock.yaml" },
+        { "src": "pnpm-workspace.yaml", "dest": "pnpm-workspace.yaml" },
+        { "src": ".npmrc", "dest": ".npmrc" },
+        { "src": "tsconfig.base.json", "dest": "tsconfig.base.json" },
+        { "src": "turbo.json", "dest": "turbo.json" },
+        { "src": "mise.toml", "dest": "mise.toml" },
+        { "src": "packages", "dest": "packages" },
+        { "src": "apps", "dest": "apps" },
+        {
+          "cmd": "corepack enable && corepack prepare pnpm@10.33.2 --activate && pnpm install --frozen-lockfile",
+          "customName": "Force pnpm install (workspace monorepo)"
+        }
+      ]
+    },
+    "build": {
+      "inputs": [{ "step": "install" }],
+      "commands": [
+        {
+          "cmd": "pnpm --filter \"@vencore/api...\" build",
+          "customName": "Build API workspace"
+        }
+      ]
+    }
+  },
   "deploy": {
-    "startCommand": "pnpm --filter \"@vencore/api\" start",
+    "startCommand": "node apps/api/dist/index.js",
     "variables": {
       "NODE_ENV": "production"
     }
