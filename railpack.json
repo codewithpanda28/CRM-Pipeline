@@ -1,0 +1,14 @@
+{
+  "$schema": "https://schema.railpack.com",
+  "provider": "node",
+  "packages": {
+    "node": "20",
+    "pnpm": "10.33.2"
+  },
+  "deploy": {
+    "startCommand": "pnpm --filter \"@vencore/api\" start",
+    "variables": {
+      "NODE_ENV": "production"
+    }
+  }
+}

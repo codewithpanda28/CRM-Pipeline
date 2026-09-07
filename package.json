@@ -6,6 +6,11 @@
     "dev": "turbo dev",
     "build": "turbo build --concurrency=1",
     "build:fast": "turbo build",
+    "build:api": "pnpm --filter \"@vencore/api...\" build",
+    "build:web": "pnpm --filter \"@vencore/web...\" build",
+    "start": "pnpm --filter \"@vencore/api\" start",
+    "start:api": "pnpm --filter \"@vencore/api\" start",
+    "start:web": "pnpm --filter \"@vencore/web\" start",
     "lint": "turbo lint",
     "type-check": "turbo type-check",
     "db:migrate": "turbo db:migrate",
@@ -16,10 +21,22 @@
     "typescript": "^5.4.0"
   },
   "engines": {
-    "node": ">=20.0.0",
-    "pnpm": ">=9.0.0"
+    "node": "20.x",
+    "pnpm": "10.x"
   },
   "packageManager": "pnpm@10.33.2",
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "20.x",
+      "onFail": "error"
+    },
+    "packageManager": {
+      "name": "pnpm",
+      "version": "10.33.2",
+      "onFail": "error"
+    }
+  },
   "pnpm": {
     "overrides": {
       "react": "19.1.0",

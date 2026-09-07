@@ -1,0 +1,6 @@
+# Pin tools so Railpack/mise use pnpm (not npm) for this workspace monorepo.
+# See: https://railpack.com/config/recommendations/#specify-the-node-package-manager-version
+
+[tools]
+node = "20.19.0"
+pnpm = "10.33.2"
