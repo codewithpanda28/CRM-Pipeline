@@ -5,6 +5,8 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
+    "module": "CommonJS",
+    "moduleResolution": "node",
     "target": "ES2022",
     "lib": ["ES2022"],
     "declaration": true,

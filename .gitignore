@@ -26,3 +26,7 @@ dump.rdb
 # Local document/object storage
 apps/api/storage/
 
+
+.turbo/
+**/.turbo/
+

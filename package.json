@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "turbo dev",
-    "build": "turbo build",
+    "build": "turbo build --concurrency=1",
+    "build:fast": "turbo build",
     "lint": "turbo lint",
     "type-check": "turbo type-check",
     "db:migrate": "turbo db:migrate",
