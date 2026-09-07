@@ -98,7 +98,27 @@ export function applyEmployeeSalesCorePreset(groups: SidebarGroupDto[]): Sidebar
     item_keys: g.item_keys.filter((k) => !PRIMARY_KEY_SET.has(k)),
     is_default: false,
   }));
+  const workExtras = withoutPrimary
+    .filter((g) => g.label.trim().toLowerCase() === 'work')
+    .flatMap((g) => g.item_keys);
   const rest = withoutPrimary.filter((g) => g.label.trim().toLowerCase() !== 'work');
+
+  // Plugins / extras previously parked on Work must not disappear when Work is reset.
+  if (workExtras.length > 0) {
+    let general = rest.find((g) => g.label.trim().toLowerCase() === 'general');
+    if (!general) {
+      general = { id: null, label: 'General', is_default: false, item_keys: [] };
+      rest.push(general);
+    }
+    const seen = new Set(general.item_keys);
+    for (const k of workExtras) {
+      if (!seen.has(k)) {
+        general.item_keys.push(k);
+        seen.add(k);
+      }
+    }
+  }
+
   return [
     { id: null, label: 'Work', is_default: true, item_keys: primary },
     ...rest,

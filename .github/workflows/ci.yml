@@ -49,20 +49,6 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: vencore
-          POSTGRES_PASSWORD: vencore
-          POSTGRES_DB: vencore_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U vencore"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -74,7 +60,6 @@ jobs:
       - run: pnpm --filter "@vencore/api..." build
       - run: pnpm --filter "@vencore/api" test
         env:
-          DATABASE_URL: postgresql://vencore:vencore@localhost:5432/vencore_test
           JWT_SECRET: test-jwt-secret
           CRON_SECRET: test-cron-secret
           NODE_ENV: test
@@ -104,9 +89,8 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter "@vencore/db" build
-      - run: pnpm --filter "@vencore/tenancy" build
-      - run: pnpm --filter "@vencore/modules" build
+      # Build api + workspace deps in correct order (db needs types/modules first)
+      - run: pnpm --filter "@vencore/api..." build
       - run: pnpm --filter "@vencore/api" test:live-isolation
         env:
           NODE_ENV: test
@@ -149,10 +133,9 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter "@vencore/db" build
-      - run: pnpm --filter "@vencore/tenancy" build
-      - run: pnpm --filter "@vencore/job-runtime" build
-      - run: pnpm --filter "@vencore/events" build
+      - run: pnpm --filter "@vencore/job-runtime..." build
+      - run: pnpm --filter "@vencore/events..." build
+      - run: pnpm --filter "@vencore/worker..." build
       - name: Create + migrate queue test database
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client

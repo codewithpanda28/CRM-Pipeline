@@ -8,6 +8,8 @@ export default defineConfig({
       '**/dist/**',
       '**/*.live.test.ts',
       'src/test/live/**',
+      // Needs Playwright Chromium — run under live/manual verification, not unit CI
+      '**/real-pdf.verification.test.ts',
     ],
   },
 });

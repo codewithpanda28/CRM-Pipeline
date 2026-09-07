@@ -3,10 +3,9 @@ RUN corepack enable && corepack prepare pnpm@10.33.2 --activate
 WORKDIR /app
 
 COPY .npmrc package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json turbo.json ./
-COPY apps/updater/package.json ./apps/updater/package.json
-RUN pnpm install --frozen-lockfile --filter "@vencore/updater"
-
-COPY apps/updater/ ./apps/updater/
+COPY packages ./packages
+COPY apps ./apps
+RUN pnpm install --frozen-lockfile --filter "@vencore/updater..."
 RUN pnpm --filter "@vencore/updater" build
 
 FROM node:20-alpine

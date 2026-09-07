@@ -42,7 +42,9 @@ describe('GET /api/workspace/modules', () => {
         // seedWorkspaceRoles admin
         .mockResolvedValueOnce({ id: 'admin-1' })
         // seedWorkspaceRoles member
-        .mockResolvedValueOnce({ id: 'member-1' }),
+        .mockResolvedValueOnce({ id: 'member-1' })
+        // ensureManagerRoleTemplate Manager
+        .mockResolvedValueOnce({ id: 'manager-1' }),
     };
     const insertChain = {
       values: vi.fn().mockReturnThis(),

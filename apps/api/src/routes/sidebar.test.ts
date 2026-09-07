@@ -41,9 +41,18 @@ describe('GET /api/sidebar/layout', () => {
     const db = mockDb({ workspace_sidebar_groups: [], workspace_plugins: [] })
     const res = await request(makeApp(db)).get('/api/sidebar/layout')
     expect(res.status).toBe(200)
-    expect(res.body.data.groups.map((g: any) => g.label)).toEqual(
-      ['Sales', 'Finance', 'Infra', 'Projects', 'Insights', 'General'],
-    )
+    expect(res.body.data.groups.map((g: any) => g.label)).toEqual([
+      'Work',
+      'Sales',
+      'Finance',
+      'Operations',
+      'Automation',
+      'Infra',
+      'Messaging',
+      'Projects',
+      'Insights',
+      'General',
+    ])
   })
 
   it('appends enabled plugin nav keys to the default group', async () => {
@@ -55,12 +64,19 @@ describe('GET /api/sidebar/layout', () => {
       ],
     })
     const res = await request(makeApp(db)).get('/api/sidebar/layout')
-    const general = res.body.data.groups.find((g: any) => g.is_default)
+    const def = res.body.data.groups.find((g: any) => g.is_default)
+    expect(def.label).toBe('Work')
+    const allKeys = res.body.data.groups.flatMap((g: any) => g.item_keys as string[])
+    expect(allKeys).toContain('/plugins/foo')
+    expect(allKeys).toContain('/plugins/bar/home')
+    // Work stays primary-only; plugin keys land on General
+    expect(def.item_keys).not.toContain('/plugins/foo')
+    const general = res.body.data.groups.find((g: any) => g.label === 'General')
     expect(general.item_keys).toContain('/plugins/foo')
     expect(general.item_keys).toContain('/plugins/bar/home')
   })
 
-  it('returns saved groups ordered by position', async () => {
+  it('returns saved groups merged with Work primary preset', async () => {
     const db = mockDb({
       workspace_sidebar_groups: [
         { id: 'g1', label: 'Mine', is_default: false, item_keys: ['/pipeline'], position: 0 },
@@ -69,8 +85,11 @@ describe('GET /api/sidebar/layout', () => {
       workspace_plugins: [],
     })
     const res = await request(makeApp(db)).get('/api/sidebar/layout')
-    expect(res.body.data.groups[0].label).toBe('Mine')
-    expect(res.body.data.groups[0].id).toBe('g1')
+    expect(res.status).toBe(200)
+    const labels = res.body.data.groups.map((g: any) => g.label)
+    expect(labels[0]).toBe('Work')
+    expect(labels).toContain('Mine')
+    expect(res.body.data.groups.find((g: any) => g.label === 'Mine')?.id).toBe('g1')
   })
 })
 
@@ -142,7 +161,11 @@ describe('PUT /api/sidebar/layout', () => {
     expect(trx.updateTable).toHaveBeenCalled()   // keep-1 updated in place (id stable)
     expect(trx.insertInto).toHaveBeenCalled()    // new General row inserted
     expect(trx.deleteFrom).toHaveBeenCalled()    // stale-1 removed
-    expect(res.body.data.groups.map((g: any) => g.label)).toEqual(['Sales', 'Finance', 'General'])
+    const labels = res.body.data.groups.map((g: any) => g.label)
+    expect(labels[0]).toBe('Work')
+    expect(labels).toContain('Sales')
+    expect(labels).toContain('Finance')
+    expect(labels).toContain('General')
   })
 })
 
