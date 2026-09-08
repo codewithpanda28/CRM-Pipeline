@@ -3,6 +3,15 @@ import crypto from 'crypto';
 
 const SAFE = new Set(['GET', 'HEAD', 'OPTIONS']);
 
+/** Session bootstrap/teardown — must work even with a stale vencore_token cookie. */
+const CSRF_EXEMPT_PREFIXES = [
+  '/api/auth/login',
+  '/api/auth/logout',
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password',
+  '/api/setup',
+];
+
 /**
  * CSRF for cookie-authenticated browser requests.
  * Bearer Authorization is exempt (API clients).
@@ -17,6 +26,11 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
     return;
   }
   if (SAFE.has(req.method.toUpperCase())) {
+    next();
+    return;
+  }
+  const path = (req.originalUrl || req.url || '').split('?')[0] ?? '';
+  if (CSRF_EXEMPT_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`))) {
     next();
     return;
   }

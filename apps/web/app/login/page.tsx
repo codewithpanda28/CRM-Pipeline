@@ -34,7 +34,7 @@ function LoginForm() {
         };
       }>('/api/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: email.trim(), password }),
       });
       dispatch(setAuth({
         token: res.data.token,
@@ -51,8 +51,15 @@ function LoginForm() {
       // Prevent open redirect — only allow same-origin relative paths
       const from = raw.startsWith('/') && !raw.startsWith('//') ? raw : '/crm/pipeline';
       window.location.href = from;
-    } catch {
-      setError('Invalid email or password');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '';
+      if (msg === 'INVALID_CREDENTIALS' || msg.includes('HTTP 401')) {
+        setError('Invalid email or password');
+      } else if (msg === 'CSRF_REJECTED' || msg.includes('HTTP 403')) {
+        setError('Session blocked login — hard-refresh (Ctrl+Shift+R) and try again.');
+      } else {
+        setError(msg || 'Sign-in failed. Try again.');
+      }
     } finally {
       setLoading(false);
     }

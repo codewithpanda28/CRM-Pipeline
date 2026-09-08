@@ -10,25 +10,38 @@ export function configure(baseUrl: string): void {
   _baseUrl = baseUrl;
 }
 
+function readCookie(name: string): string | undefined {
+  if (typeof document === 'undefined') return undefined;
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}=([^;]*)`));
+  return match?.[1] ? decodeURIComponent(match[1]) : undefined;
+}
+
 export async function apiFetch<T>(
   path: string,
   options: RequestInit & { token?: string } = {},
 ): Promise<T> {
   const { token, ...init } = options;
+  const csrf = readCookie('vencore_csrf');
   const res = await fetch(`${_baseUrl}${path}`, {
     ...init,
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(csrf ? { 'x-csrf-token': csrf } : {}),
       ...(init.headers ?? {}),
     },
   });
 
-  const json = (await res.json()) as { error?: { message?: string } };
+  const json = (await res.json()) as { error?: { code?: string; message?: string } | null };
 
   if (!res.ok || json.error) {
-    throw new Error(json.error?.message ?? `HTTP ${res.status}`);
+    const code = json.error && typeof json.error === 'object' ? json.error.code : undefined;
+    const message =
+      (json.error && typeof json.error === 'object' ? json.error.message : undefined) ??
+      code ??
+      `HTTP ${res.status}`;
+    throw new Error(message);
   }
 
   return json as T;
