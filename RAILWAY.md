@@ -1,56 +1,57 @@
 # Railway deploy — READ THIS
 
-## Why you still see `npm` + `workspace:*` errors
+## Live status (set via CLI)
 
-That log means Railway is still using **Railpack + npm**, NOT our Dockerfile.
-
-Our repo **requires**:
+Project `calm-purpose` / service **CRM-Pipeline** should be **Online** when:
 
 | Setting | Value |
 |---------|--------|
-| **Root Directory** | **EMPTY** (repo root) |
-| **Builder** | **Dockerfile** |
-| **Dockerfile path** | `Dockerfile` |
-| **Start Command** | `node apps/api/dist/index.js` |
+| Root Directory | **EMPTY** (repo root) |
+| Builder | **Dockerfile** |
+| Dockerfile path | `Dockerfile` |
+| Start | `node apps/api/dist/index.js` (or Dockerfile `CMD`) |
 
-### Wrong (causes this exact error)
+Public API (example): `https://crm-pipeline-production-8dea.up.railway.app`
 
-- Root Directory = `apps/api` → only sees `apps/api/package.json` → **no pnpm**, `workspace:*` → boom
-- Builder = Railpack → runs `npm install`
+## Required Variables (API service)
 
-### Proof in your log
+Do **not** paste Suggested Variables from `.env.example` (those use `localhost` and will crash).
 
+| Variable | Correct source |
+|----------|----------------|
+| `DATABASE_URL` | Reference → **Postgres** → `DATABASE_URL` (`*.railway.internal`) |
+| `REDIS_URL` | Reference → **Redis** → `REDIS_URL` |
+| `JWT_SECRET` | 64-char hex (`openssl rand -hex 32`) |
+| `CRON_SECRET` | 64-char hex |
+| `SSH_ENCRYPTION_KEY` | 64-char hex |
+| `NODE_ENV` | `production` |
+| `APP_URL` | Public Railway / custom domain |
+| `JOBS_RUNTIME` | `bullmq` (with Redis) |
+
+CLI (already used for this project):
+
+```bash
+railway service CRM-Pipeline
+railway variable set \
+  "DATABASE_URL=${{Postgres.DATABASE_URL}}" \
+  "REDIS_URL=${{Redis.REDIS_URL}}" \
+  "NODE_ENV=production" \
+  "JWT_SECRET=..." \
+  "CRON_SECRET=..." \
+  "SSH_ENCRYPTION_KEY=..." \
+  "JOBS_RUNTIME=bullmq"
+railway redeploy --yes
+railway domain   # creates *.up.railway.app if missing
 ```
-using build driver railpack-v0.39.0
-Using npm package manager
-$ npm install
-Unsupported URL Type "workspace:"
-```
 
-If Dockerfile builder was active you would see:
+## Why errors came in layers
 
-```
-load build definition from Dockerfile
-FROM node:20-bookworm-slim
-RUN corepack enable && corepack prepare pnpm@...
-```
+1. Railpack + npm → monorepo needs Dockerfile + pnpm  
+2. Packages pointed at `src/` → must use `dist/`  
+3. Empty Variables → Zod required secrets / DB URL  
 
-## Fix in Railway UI (required — code alone cannot override a bad Root Directory)
+Each fix unlocks the next boot stage. Suggested localhost vars are wrong for Railway.
 
-1. Open project **calm-purpose** → your API service  
-2. **Settings → Source / Root Directory** → clear it (blank)  
-3. **Settings → Build** → Builder = **Dockerfile**  
-4. Dockerfile path = `Dockerfile`  
-5. Remove any Start Command that says `npm run start` (or set `node apps/api/dist/index.js`)  
-6. **Deploy** latest `main` (`075fa88` or newer)
+## Optional: GHCR image
 
-## Files already on `main`
-
-- `/Dockerfile` — pnpm monorepo API image  
-- `/railway.json` + `/railway.toml` — force Dockerfile builder  
-- `/package.json` — `"packageManager": "pnpm@10.33.2"`
-
-## Optional: skip build, run GHCR image
-
-GitHub already publishes `ghcr.io/codewithpanda28/crm-api:latest`.  
-You can point the Railway service at that image instead of building from Git.
+`ghcr.io/codewithpanda28/crm-api:latest` can be used instead of building from Git.
