@@ -42,7 +42,7 @@ RUN corepack enable && corepack prepare pnpm@...
 3. **Settings → Build** → Builder = **Dockerfile**  
 4. Dockerfile path = `Dockerfile`  
 5. Remove any Start Command that says `npm run start` (or set `node apps/api/dist/index.js`)  
-6. **Deploy** latest `main` (`359212c` or newer)
+6. **Deploy** latest `main` (`075fa88` or newer)
 
 ## Files already on `main`
 
