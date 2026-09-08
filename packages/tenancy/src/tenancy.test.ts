@@ -41,6 +41,11 @@ describe('host resolution', () => {
   it('classifies custom domain', () => {
     expect(classifyHost('crm.client.com', cfg).kind).toBe('custom_domain');
   });
+
+  it('classifies Railway preview hosts as platform', () => {
+    expect(classifyHost('crm-web-production-8ad6.up.railway.app', cfg).kind).toBe('platform');
+    expect(classifyHost('crm-pipeline-production-8dea.up.railway.app', cfg).kind).toBe('platform');
+  });
 });
 
 describe('cache isolation', () => {

@@ -49,11 +49,11 @@ export function DashboardIndexPage() {
       }}
     >
       <p style={{ fontSize: 15, margin: 0 }}>
-        {hasPermission('workspace:manage')
-          ? 'No dashboards yet.'
-          : 'No dashboards have been assigned to your groups.'}
+        {hasPermission('workspace:manage') || hasPermission('dashboard:manage')
+          ? 'No dashboards yet. Create one, or open Pipeline from the sidebar.'
+          : 'No dashboards have been assigned to your groups. Ask an admin, or open Pipeline from the sidebar.'}
       </p>
-      {hasPermission('workspace:manage') && (
+      {(hasPermission('workspace:manage') || hasPermission('dashboard:manage')) && (
         <button
           onClick={() => setShowCreate(true)}
           style={{

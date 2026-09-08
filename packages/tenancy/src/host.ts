@@ -49,6 +49,15 @@ export function classifyHost(host: string, cfg: HostResolutionConfig): HostResol
     return { kind: 'platform', host };
   }
 
+  // Railway / local preview hosts are platform (no tenant slug from subdomain)
+  if (
+    host.endsWith('.up.railway.app') ||
+    host.endsWith('.railway.app') ||
+    host.endsWith('.railway.internal')
+  ) {
+    return { kind: 'platform', host };
+  }
+
   const base = cfg.platformBaseDomain.toLowerCase();
   const suffix = `.${base}`;
   if (host === base) {
