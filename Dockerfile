@@ -8,7 +8,11 @@ COPY .npmrc package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json t
 COPY packages ./packages
 COPY apps ./apps
 RUN pnpm install --frozen-lockfile
-RUN pnpm --filter "@vencore/api..." build
+RUN pnpm --filter "@vencore/api..." build \
+  && test -f apps/api/dist/index.js \
+  && test -f packages/tenancy/dist/index.js \
+  && test -f packages/events/dist/index.js \
+  && test -f packages/db/dist/index.js
 
 ENV NODE_ENV=production
 EXPOSE 3001

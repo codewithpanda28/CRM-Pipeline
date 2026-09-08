@@ -4,8 +4,8 @@
     "outDir": "dist",
     "rootDir": "src",
     "declaration": true,
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext"
+    "module": "CommonJS",
+    "moduleResolution": "node"
   },
   "include": ["src"]
 }
