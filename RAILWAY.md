@@ -8,10 +8,13 @@ Project `calm-purpose` / service **CRM-Pipeline** should be **Online** when:
 |---------|--------|
 | Root Directory | **EMPTY** (repo root) |
 | Builder | **Dockerfile** |
-| Dockerfile path | `Dockerfile` |
-| Start | `node apps/api/dist/index.js` (or Dockerfile `CMD`) |
+| Dockerfile path | API: `Dockerfile` · Web: `Dockerfile.web` (set **per service** in Railway) |
+| Start | API: `node apps/api/dist/index.js` · Web: Next on `$PORT` |
 
-Public API (example): `https://crm-pipeline-production-8dea.up.railway.app`
+Do **not** use one shared `railway.toml` for both services — it forced the API image onto Web.
+
+Public API: `https://crm-pipeline-production-8dea.up.railway.app`  
+Public Web: `https://crm-web-production-8ad6.up.railway.app`
 
 ## Required Variables (API service)
 
