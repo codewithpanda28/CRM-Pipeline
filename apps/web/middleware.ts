@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const PUBLIC_PATHS = ['/login', '/invite', '/forgot-password', '/reset-password', '/api/auth', '/api/config', '/api/invites/accept', '/api/agent', '/api/deployments'];
+const PUBLIC_PATHS = ['/login', '/invite', '/forgot-password', '/reset-password', '/healthz', '/api/auth', '/api/config', '/api/health', '/api/invites/accept', '/api/agent', '/api/deployments'];
 const SETUP_PATHS = ['/setup', '/api/setup'];
 
 export default function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  // Liveness probes must never redirect (Railway healthcheck)
+  if (pathname === '/healthz' || pathname.startsWith('/healthz/')) {
+    return NextResponse.next();
+  }
 
   // INSTALLER_MODE: redirect all non-setup routes to /setup
   if (process.env['INSTALLER_MODE'] === 'true') {
@@ -15,7 +20,8 @@ export default function middleware(req: NextRequest) {
       pathname.startsWith('/_next') ||
       pathname.startsWith('/favicon') ||
       pathname.startsWith('/logo') ||
-      pathname === '/'
+      pathname === '/' ||
+      pathname === '/healthz'
     ) {
       return NextResponse.next();
     }
