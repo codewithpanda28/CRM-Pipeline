@@ -1,3 +1,4 @@
+# ThinkAIQ CRM — Web (Next.js) production image for Railway
 FROM node:20-bookworm-slim
 RUN corepack enable && corepack prepare pnpm@10.33.2 --activate
 WORKDIR /app
@@ -7,8 +8,9 @@ COPY .npmrc package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json t
 COPY packages ./packages
 COPY apps ./apps
 
+# Build-time (Railway injects matching service variables as build-args)
 ARG NEXT_PUBLIC_APP_URL=http://localhost:3000
-ARG API_URL=http://api:3001
+ARG API_URL=http://localhost:3001
 ARG NEXT_PUBLIC_API_URL=
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
     API_URL=$API_URL \
@@ -22,4 +24,5 @@ EXPOSE 3000
 WORKDIR /app/apps/web
 ARG VENCORE_VERSION=0.0.0-dev
 ENV VENCORE_VERSION=$VENCORE_VERSION
+# Railway sets PORT (often 8080)
 CMD ["sh", "-c", "exec ./node_modules/.bin/next start -H 0.0.0.0 -p ${PORT:-3000}"]
